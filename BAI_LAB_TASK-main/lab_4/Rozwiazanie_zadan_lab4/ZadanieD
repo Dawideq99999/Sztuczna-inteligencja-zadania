@@ -1,0 +1,122 @@
+import tensorflow as tf
+import matplotlib.pyplot as plt
+
+
+# =========================
+# 1. DANE (MNIST)
+# =========================
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+
+x_train_cnn = x_train.reshape(-1, 28, 28, 1).astype("float32") / 255.0
+x_test_cnn  = x_test.reshape(-1, 28, 28, 1).astype("float32") / 255.0
+
+y_train_oh = tf.keras.utils.to_categorical(y_train, 10)
+
+
+# =========================
+# 2. MODEL: DROPout
+# =========================
+def build_model_dropout(rate=0.5):
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Input(shape=(28, 28, 1)),
+
+        tf.keras.layers.Conv2D(32, (3,3), activation='relu'),
+        tf.keras.layers.MaxPooling2D((2,2)),
+        tf.keras.layers.Dropout(rate),
+
+        tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+        tf.keras.layers.MaxPooling2D((2,2)),
+        tf.keras.layers.Dropout(rate),
+
+        tf.keras.layers.Flatten(),
+
+        tf.keras.layers.Dense(128, activation='relu'),
+        tf.keras.layers.Dropout(rate),
+
+        tf.keras.layers.Dense(10, activation='softmax')
+    ])
+    return model
+
+
+# =========================
+# 3. MODEL: L2 REGULARIZATION
+# =========================
+def build_model_l2(l2_value=0.01):
+    reg = tf.keras.regularizers.l2(l2_value)
+
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Input(shape=(28, 28, 1)),
+
+        tf.keras.layers.Conv2D(32, (3,3), activation='relu',
+                               kernel_regularizer=reg),
+        tf.keras.layers.MaxPooling2D((2,2)),
+
+        tf.keras.layers.Conv2D(64, (3,3), activation='relu',
+                               kernel_regularizer=reg),
+        tf.keras.layers.MaxPooling2D((2,2)),
+
+        tf.keras.layers.Flatten(),
+
+        tf.keras.layers.Dense(128, activation='relu',
+                              kernel_regularizer=reg),
+
+        tf.keras.layers.Dense(10, activation='softmax')
+    ])
+    return model
+
+
+# =========================
+# 4. TRENING
+# =========================
+def train(model):
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(0.001),
+        loss='categorical_crossentropy',
+        metrics=['accuracy']
+    )
+
+    history = model.fit(
+        x_train_cnn, y_train_oh,
+        epochs=5,
+        batch_size=32,
+        validation_split=0.2,
+        verbose=1
+    )
+
+    return history
+
+
+# =========================
+# 5. EKSPERYMENTY
+# =========================
+
+print("\nTrening Dropout 0.3...")
+h_drop_03 = train(build_model_dropout(rate=0.3))
+
+print("\nTrening Dropout 0.5...")
+h_drop_05 = train(build_model_dropout(rate=0.5))
+
+print("\nTrening L2 = 0.01...")
+h_l2_001 = train(build_model_l2(l2_value=0.01))
+
+print("\nTrening L2 = 0.001...")
+h_l2_0001 = train(build_model_l2(l2_value=0.001))
+
+
+# =========================
+# 6. WYKRES
+# =========================
+plt.figure(figsize=(10,5))
+
+plt.plot(h_drop_03.history['val_accuracy'], label='Dropout 0.3')
+plt.plot(h_drop_05.history['val_accuracy'], label='Dropout 0.5')
+plt.plot(h_l2_001.history['val_accuracy'], label='L2 = 0.01')
+plt.plot(h_l2_0001.history['val_accuracy'], label='L2 = 0.001')
+
+plt.title("Zadanie D – Regularizacja (Dropout vs L2)")
+plt.xlabel("Epoka")
+plt.ylabel("Val Accuracy")
+plt.legend()
+plt.grid(True)
+
+plt.show()

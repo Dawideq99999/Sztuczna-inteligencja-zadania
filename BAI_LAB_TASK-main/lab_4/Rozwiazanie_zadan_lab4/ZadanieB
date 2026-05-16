@@ -1,0 +1,83 @@
+import tensorflow as tf
+import matplotlib.pyplot as plt
+
+
+# =========================
+# 1. DANE (MNIST)
+# =========================
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+
+x_train_cnn = x_train.reshape(-1, 28, 28, 1).astype("float32") / 255.0
+x_test_cnn  = x_test.reshape(-1, 28, 28, 1).astype("float32") / 255.0
+
+y_train_oh = tf.keras.utils.to_categorical(y_train, 10)
+y_test_oh  = tf.keras.utils.to_categorical(y_test, 10)
+
+
+# =========================
+# 2. NOWA ARCHITEKTURA (ZADANIE B)
+# =========================
+def build_model():
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Input(shape=(28, 28, 1)),
+
+        # Conv 1
+        tf.keras.layers.Conv2D(32, (3,3), activation='relu'),
+        tf.keras.layers.MaxPooling2D((2,2)),
+
+        # Conv 2
+        tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+        tf.keras.layers.MaxPooling2D((2,2)),
+
+        # Conv 3 (DODANA WARSTWA)
+        tf.keras.layers.Conv2D(128, (3,3), activation='relu'),
+        tf.keras.layers.MaxPooling2D((2,2)),
+
+        # Dense head
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(256, activation='relu'),
+        tf.keras.layers.Dense(10, activation='softmax')
+    ])
+
+    return model
+
+
+# =========================
+# 3. KOMPILACJA
+# =========================
+model = build_model()
+
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+    loss='categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+
+# =========================
+# 4. TRENING
+# =========================
+history = model.fit(
+    x_train_cnn, y_train_oh,
+    epochs=5,
+    batch_size=32,
+    validation_split=0.2,
+    verbose=1
+)
+
+
+# =========================
+# 5. WYKRES
+# =========================
+plt.figure(figsize=(10,5))
+
+plt.plot(history.history['accuracy'], label='train accuracy')
+plt.plot(history.history['val_accuracy'], label='val accuracy')
+
+plt.title("Zadanie B - zmodyfikowana architektura CNN")
+plt.xlabel("Epoka")
+plt.ylabel("Accuracy")
+plt.legend()
+plt.grid(True)
+
+plt.show()
